@@ -8,47 +8,35 @@
 """Common pytest fixtures and plugins."""
 
 from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function
+
+import json
+import os
 
 import pytest
 from invenio_accounts.models import User
-from invenio_app_ils.acquisition.api import (
-    ORDER_PID_TYPE,
-    VENDOR_PID_TYPE,
-    Order,
-    Vendor,
-)
-from invenio_app_ils.document_requests.api import (
-    DOCUMENT_REQUEST_PID_TYPE,
-    DocumentRequest,
-)
+from invenio_app.factory import create_api
+from invenio_circulation.api import Loan
+from invenio_circulation.pidstore.pids import CIRCULATION_LOAN_PID_TYPE
+from invenio_db import db
+from invenio_indexer.api import RecordIndexer
+from invenio_oauthclient.models import RemoteAccount, UserIdentity
+from invenio_pidstore.models import PersistentIdentifier, PIDStatus
+from invenio_search import current_search
+from invenio_userprofiles.models import UserProfile
+
 from invenio_app_ils.documents.api import DOCUMENT_PID_TYPE, Document
-from invenio_app_ils.eitems.api import EITEM_PID_TYPE, EItem
-from invenio_app_ils.ill.api import (
-    BORROWING_REQUEST_PID_TYPE,
-    LIBRARY_PID_TYPE,
-    BorrowingRequest,
-    Library,
-)
-from invenio_app_ils.internal_locations.api import (
-    INTERNAL_LOCATION_PID_TYPE,
-    InternalLocation,
-)
+from invenio_app_ils.internal_locations.api import INTERNAL_LOCATION_PID_TYPE  # noqa isort:skip
+from invenio_app_ils.internal_locations.api import InternalLocation  # noqa isort:skip
 from invenio_app_ils.items.api import ITEM_PID_TYPE, Item
 from invenio_app_ils.locations.api import LOCATION_PID_TYPE, Location
 from invenio_app_ils.series.api import SERIES_PID_TYPE, Series
-from invenio_circulation.api import Loan
-from invenio_circulation.pidstore.pids import CIRCULATION_LOAN_PID_TYPE
-from invenio_indexer.api import RecordIndexer
-from invenio_oauthclient.models import RemoteAccount, UserIdentity
-from invenio_search import current_search
-from invenio_userprofiles.models import UserProfile
-from tests.helpers import load_json_from_datadir, mint_record_pid
 
 
 @pytest.fixture()
 def system_user(app, db):
     """Create a regular system user."""
-    user = User(**dict(email="system_user@cern.ch", active=True))
+    user = User(**dict(id="1", email="system_user@cern.ch", active=True))
     db.session.add(user)
     db.session.commit()
 
@@ -78,38 +66,86 @@ def system_user(app, db):
     return user
 
 
-def _create_records(db, objs, cls, pid_type):
-    """Create records and index."""
-    recs = []
-    for obj in objs:
-        record = cls.create(obj)
-        mint_record_pid(pid_type, "pid", record)
-        record.commit()
-        recs.append(record)
+def load_json_from_datadir(filename):
+    """Load JSON from dir."""
+    _data_dir = os.path.join(os.path.dirname(__file__), "data")
+    with open(os.path.join(_data_dir, filename), "r") as fp:
+        return json.load(fp)
+
+
+def mint_record_pid(pid_type, pid_field, record):
+    """Mint the given PID for the given record."""
+    PersistentIdentifier.create(
+        pid_type=pid_type,
+        pid_value=record[pid_field],
+        object_type="rec",
+        object_uuid=record.id,
+        status=PIDStatus.REGISTERED,
+    )
     db.session.commit()
-    return recs
 
 
 @pytest.fixture()
-def testdata(app, db, es_clear):
+def testdata(app, db, es_clear, system_user):
     """Create, index and return test data."""
+    indexer = RecordIndexer()
 
-    data = load_json_from_datadir("locations.json")
-    locations = _create_records(db, data, Location, LOCATION_PID_TYPE)
+    locations = load_json_from_datadir("locations.json")
+    for location in locations:
+        record = Location.create(location)
+        mint_record_pid(LOCATION_PID_TYPE, "pid", record)
+        record.commit()
+        db.session.commit()
+        indexer.index(record)
 
-    data = load_json_from_datadir("internal_locations.json")
-    int_locs = _create_records(
-        db, data, InternalLocation, INTERNAL_LOCATION_PID_TYPE
-    )
+    internal_locations = load_json_from_datadir("internal_locations.json")
+    for internal_location in internal_locations:
+        record = InternalLocation.create(internal_location)
+        mint_record_pid(
+            INTERNAL_LOCATION_PID_TYPE, "pid", record
+        )
+        record.commit()
+        db.session.commit()
+        indexer.index(record)
 
-    # index
-    ri = RecordIndexer()
-    for rec in locations + int_locs:
-        ri.index(rec)
+    documents = load_json_from_datadir("documents.json")
+    for doc in documents:
+        record = Document.create(doc)
+        mint_record_pid(DOCUMENT_PID_TYPE, "pid", record)
+        record.commit()
+        db.session.commit()
+        indexer.index(record)
 
-    current_search.flush_and_refresh(index="*")
+    items = load_json_from_datadir("items.json")
+    for item in items:
+        record = Item.create(item)
+        mint_record_pid(ITEM_PID_TYPE, "pid", record)
+        record.commit()
+        db.session.commit()
+        indexer.index(record)
 
+    loans = load_json_from_datadir("loans.json")
+    for loan in loans:
+        record = Loan.create(loan)
+        mint_record_pid(CIRCULATION_LOAN_PID_TYPE, "pid", record)
+        record.commit()
+        db.session.commit()
+        indexer.index(record)
+
+    series = load_json_from_datadir("series.json")
+    for serie in series:
+        record = Series.create(serie)
+        mint_record_pid(SERIES_PID_TYPE, "pid", record)
+        record.commit()
+        db.session.commit()
+        indexer.index(record)
+
+    # flush all indices after indexing, otherwise ES won't be ready for tests
+    current_search.flush_and_refresh(index='*')
     return {
-        "internal_locations": int_locs,
+        "documents": documents,
+        "items": items,
+        "loans": loans,
         "locations": locations,
+        "series": series,
     }
