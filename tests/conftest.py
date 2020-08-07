@@ -36,7 +36,7 @@ from invenio_app_ils.series.api import SERIES_PID_TYPE, Series
 @pytest.fixture()
 def system_user(app, db):
     """Create a regular system user."""
-    user = User(**dict(id="1", email="system_user@cern.ch", active=True))
+    user = User(**dict(email="system_user@cern.ch", active=True))
     db.session.add(user)
     db.session.commit()
 

@@ -18,6 +18,14 @@ from cds_books.ldap.cli import (
 )
 
 
+def test_delete_user(app, system_user, testdata, app_with_mail):
+
+    with app_with_mail.extensions["mail"].record_messages() as outbox:
+        assert len(outbox) == 0
+        delete_user(system_user)
+        assert len(outbox) > 0
+
+
 def test_check_users_for_update(app, system_user):
     """Test check for users update in sync command."""
     with app.app_context():
@@ -59,11 +67,3 @@ def test_import_ldap_users(app):
         UserIdentity.id == ldap_users[0]["uidNumber"][0].decode("utf8")
     ).one()
     assert RemoteAccount.query.filter(RemoteAccount.user_id == user.id).one()
-
-
-def test_delete_user(system_user, testdata, app_with_mail):
-
-    with app_with_mail.extensions["mail"].record_messages() as outbox:
-        assert len(outbox) == 0
-        delete_user(system_user)
-        assert len(outbox) > 0
