@@ -23,7 +23,8 @@ def test_delete_user(app, system_user, testdata, app_with_mail):
     with app_with_mail.extensions["mail"].record_messages() as outbox:
         assert len(outbox) == 0
         delete_user(system_user)
-        assert len(outbox) > 0
+        assert len(outbox) == 1
+        assert outbox[0].recipients == ["cds.internal@cern.ch"]
 
 
 def test_check_users_for_update(app, system_user):

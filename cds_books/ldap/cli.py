@@ -62,15 +62,6 @@ def check_user_for_update(system_user, ldap_user):
         db.session.commit()
 
 
-# def delete_user(system_user):
-#     """Delete a system user."""
-#     try:
-#         anonymize_patron_data(system_user.id)
-#     except AssertionError:
-#         print("SEND EMAILSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
-#         send_active_loans_mail(system_user.id)
-
-
 def delete_user(system_user):
     """Delete a system user."""
     with current_app.app_context():
