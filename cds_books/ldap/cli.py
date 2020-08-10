@@ -62,18 +62,21 @@ def check_user_for_update(system_user, ldap_user):
         db.session.commit()
 
 
+@click.group()
+def ldap_users():
+    """Ldap users import CLI."""
+
+
+@ldap_users.command(name="delete")
+@click.option("--system-user")
+@with_appcontext
 def delete_user(system_user):
     """Delete a system user."""
     with current_app.app_context():
         try:
-            anonymize_patron_data(system_user.id)
+            anonymize_patron_data(system_user)
         except AssertionError:
-            send_active_loans_mail(system_user.id)
-
-
-@click.group()
-def ldap_users():
-    """Ldap users import CLI."""
+            send_active_loans_mail(system_user)
 
 
 @ldap_users.command(name="import")
