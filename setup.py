@@ -47,6 +47,9 @@ setup(
         'invenio_base.api_apps': [
             'cds_books = cds_books.ext:CdsBooks'
         ],
+        'invenio_base.apps': [
+            'cds_books_app = cds_books.ext:CdsBooks'
+        ],
         'invenio_base.blueprints': [
             'cds_books = cds_books.theme.views:blueprint',
         ],

@@ -35,27 +35,13 @@ class CdsBooks(object):
         app.register_blueprint(
             Blueprint("cds_books", __name__, template_folder="templates",)
         )
-
         app.register_blueprint(
             Blueprint(
-                "cds_books_circulation_mail",
+                "cds_ils_circulation_mail",
                 __name__,
                 template_folder="circulation/templates",
             )
         )
-
-        # add extra test templates to the search app blueprint, to fake the
-        # existence of `invenio-theme` base templates.
-        templates_path = os.path.join(
-            os.path.dirname(__file__), "circulation/templates"
-        )
-        print("PAATH:", templates_path)
-        enhanced_jinja_loader = jinja2.ChoiceLoader(
-            [app.jinja_loader, jinja2.FileSystemLoader(templates_path),]
-        )
-        # override default app jinja_loader to add the new path
-        app.jinja_loader = enhanced_jinja_loader
-        yield app
 
     @staticmethod
     def register_signals(app):

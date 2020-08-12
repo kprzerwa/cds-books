@@ -320,3 +320,7 @@ ILS_RECORDS_METADATA_EXTENSIONS = {
         },
     }
 }
+
+EXPLAIN_TEMPLATE_LOADING = True
+
+ILS_CIRCULATION_LOANS_MAIL_MSG_CREATOR = "cds_books.circulation.mail.factory:loan_list_message_creator"
