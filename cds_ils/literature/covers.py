@@ -72,7 +72,7 @@ def build_syndetic_cover_urls(cover_metadata):
         scheme_value = isbn
 
     if issn or isbn:
-        _url = "{url}?client={client}&{sheme}={value}/{size}.gif"
+        _url = "{url}?client={client}&{scheme}={scheme_value}/{size}.gif"
         partial_url = partial(
             _url.format,
             url=url,
