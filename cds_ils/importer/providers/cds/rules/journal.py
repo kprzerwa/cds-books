@@ -16,7 +16,7 @@ from invenio_app_ils.relations.api import LANGUAGE_RELATION, OTHER_RELATION, \
 from cds_ils.importer.errors import UnexpectedValue
 from cds_ils.importer.providers.cds.models.journal import model
 
-from .book import title as base_title
+from .base import title as base_title
 from .utils import clean_val, filter_list_values, out_strip
 
 
